@@ -1,43 +1,36 @@
-module GameOfLife
+namespace GameOfLife
 
 open System
 
-let neighbours (x, y) =
-  [| (x + 1, y)
-     (x, y + 1)
-     (x - 1, y)
-     (x, y - 1)
-     (x + 1, y - 1)
-     (x - 1, y + 1)
-     (x - 1, y - 1)
-     (x + 1, y + 1) |]
-  |> Array.distinct
+module Grid =
 
-let isAlive grid (x, y) = grid |> Array.contains (x, y)
+  let neighbours (x, y) =
+    let coordinates = [| -1; 0; 1 |]
 
-let aliveNeighbours grid (x, y) = neighbours (x, y) |> Array.filter (isAlive grid) |> Array.length
+    Array.allPairs coordinates coordinates
+    |> Array.map (fun (x', y') -> x + x', y + y')
+    |> Array.filter ((<>) (x, y))
 
-let survivors grid =
-  grid
-  |> Array.filter (fun (x, y) ->
-    let n = (x,y) |> aliveNeighbours grid
-    n = 2 || n = 3)
+  let aliveNeighbours xy grid = neighbours xy |> Array.filter (fun xy -> grid |> Array.contains xy)
 
-let births grid =
-  grid
-  |> Array.collect neighbours
-  |> Array.distinct
-  |> Array.filter (fun (x, y) -> (x, y) |> aliveNeighbours grid = 3)
+  let survivors grid =
+    grid
+    |> Array.filter (fun xy ->
+      let n = grid |> aliveNeighbours xy |> Array.length
+      n = 2 || n = 3)
 
-let tick grid =
-  let next = survivors grid |> Array.append (births grid)
-  next |> Array.distinct
+  let births grid =
+    grid
+    |> Array.collect neighbours
+    |> Array.filter (fun xy -> grid |> aliveNeighbours xy |> Array.length = 3)
 
-let printAt (x, y) (c: char) = Console.Write $"\027[{y + 1};{x + 1}H{c}"
+  let tick grid =
+    let next = survivors grid |> Array.append (births grid)
+    next |> Array.distinct
 
-let random width height =
-  let r = Random()
+  let random width height =
+    let r = Random()
 
-  [| 0..width |]
-  |> Array.collect (fun x -> [| 0..height |] |> Array.map (fun y -> x, y))
-  |> Array.filter (fun _ -> r.Next(0, 5) > 3)
+    [| 0..width |]
+    |> Array.collect (fun x -> [| 0..height |] |> Array.map (fun y -> x, y))
+    |> Array.filter (fun _ -> r.Next(0, 5) > 3)
